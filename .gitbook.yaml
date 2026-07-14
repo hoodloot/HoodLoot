@@ -1,0 +1,7 @@
+# GitBook config for the docs-only repo (docs/ is the repo root there).
+structure:
+  readme: README.md
+  summary: SUMMARY.md
+
+redirects:
+  hoodminer: about.md
