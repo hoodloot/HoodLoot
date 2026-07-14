@@ -1,0 +1,128 @@
+openapi: 3.0.3
+info:
+  title: HoodLoot API
+  version: "1.0.0"
+  description: >
+    Public, read-only API for **HoodLoot**, the onchain idle-mining game on
+    Robinhood Chain. It exposes global network state, per-wallet stats, the
+    leaderboard, and the ETH/USD price used for tolls.
+  license:
+    name: MIT
+servers:
+  - url: https://hoodloot.com
+    description: HoodLoot API
+
+tags:
+  - name: Public
+    description: Open, read-only game + network data
+
+paths:
+  /health:
+    get:
+      tags: [Public]
+      summary: Liveness
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: ok }
+                  blockNumber: { type: string, example: "888210" }
+
+  /api/global:
+    get:
+      tags: [Public]
+      summary: Global network state
+      description: Emission, halving, supply, burn, and network Loot Rate at the current block.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GlobalState" }
+
+  /api/stats/{address}:
+    get:
+      tags: [Public]
+      summary: Per-wallet stats
+      description: A wallet's hideout tier, Loot Rate, pending $SHARE, inventory, and tile layout.
+      parameters:
+        - name: address
+          in: path
+          required: true
+          description: EVM address (0x…)
+          schema: { type: string, pattern: "^0x[a-fA-F0-9]{40}$" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PlayerStats" }
+        "400": { description: Invalid address }
+        "429": { description: Rate limited }
+
+  /api/leaderboard:
+    get:
+      tags: [Public]
+      summary: Top-20 by Loot Rate
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  entries:
+                    type: array
+                    items: { $ref: "#/components/schemas/LeaderboardEntry" }
+
+  /api/price:
+    get:
+      tags: [Public]
+      summary: ETH/USD price
+      description: The Chainlink-backed ETH price used to value the USD tolls.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ethUsd: { type: number, example: 3000 }
+
+components:
+  schemas:
+    GlobalState:
+      type: object
+      properties:
+        blockNumber: { type: string, example: "888210" }
+        globalLootRate: { type: string, example: "1000000" }
+        emissionPerBlockWei: { type: string, example: "135030864197530880" }
+        nextHalvingBlock: { type: string }
+        blocksToHalving: { type: string }
+        totalSupplyWei: { type: string }
+        totalBurnedWei: { type: string }
+        totalMinedWei: { type: string }
+        ethPriceUsd: { type: number, example: 3000 }
+    PlayerStats:
+      type: object
+      properties:
+        address: { type: string }
+        tier: { type: integer, example: 1 }
+        hashrateGHs: { type: string, description: "Loot Rate", example: "280" }
+        powerUsedW: { type: integer, description: "Upkeep used" }
+        pendingBIKE: { type: string, description: "Pending $SHARE (wei)" }
+        inventoryCounts: { type: array, items: { type: integer } }
+        tileLayout: { type: array, items: { type: integer } }
+    LeaderboardEntry:
+      type: object
+      properties:
+        rank: { type: integer }
+        address: { type: string }
+        hashrateGHs: { type: string }
+        estimatedDailyWei: { type: string }
